@@ -8,8 +8,6 @@ import multiprocessing
 # https://solarianprogrammer.com/2018/04/21/python-opencv-show-video-tkinter-window/
 class UI(multiprocessing.Process):
     def __init__(self, window_title, video_source, fps):
-        self.exit = multiprocessing.Event()
-
         self.window = tkinter.Tk()
         self.window.title(window_title)
         self.video_source = video_source
@@ -35,7 +33,7 @@ class UI(multiprocessing.Process):
         self.window.mainloop()
 
     def shutdown(self):
-        self.exit.set()
+        self.window.quit()
 
     def snapshot(self):
         ret, frame = self.vid.get_frame()
@@ -46,14 +44,13 @@ class UI(multiprocessing.Process):
             )
 
     def update(self):
-        while not self.exit.is_set():
-            ret, frame = self.vid.get_frame()
+        ret, frame = self.vid.get_frame()
 
-            if ret:
-                self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
-                self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        if ret:
+            self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
+            self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
-            self.window.after(self.delay_ms, self.update)
+        self.window.after(self.delay_ms, self.update)
 
 
 class VidCap:

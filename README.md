@@ -2,7 +2,7 @@
 
 Very early demo. README is Fedora 30-centric, and French-to-English centric (as that is my use case).
 
-I target Python 3.8 to experiment with <https://docs.python.org/3/library/multiprocessing.shared_memory.html>. Note that I use asyncio, not because I want to, but because [wordbook](https://github.com/tomplus/wordbook) forces me to.
+I target Python 3.7. Note that I use asyncio, not because I want to, but because [wordbook](https://github.com/tomplus/wordbook) forces me to.
 
 Discover your webcam as follows:
 
@@ -12,7 +12,14 @@ $ mpv av://v4l2:/dev/video4
 
 ### Dependencies
 
-opencv-python is not yet available for Python 3.8, but building it from source is straightforward. 
+Some of the dependencies were only installable with dnf:
+
+```
+$ sudo dnf install python3-imaging-tk \
+                    python3-tkinter
+```
+
+Your virtualenv should inherit system packages. [DAWG](https://github.com/pytries/DAWG) must be installed from source.
 
 ### Dictionary setup
 

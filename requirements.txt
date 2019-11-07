@@ -1,4 +1,3 @@
-DAWG
 wordbook
 opencv-python
 Pillow

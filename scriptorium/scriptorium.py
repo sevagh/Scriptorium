@@ -85,5 +85,6 @@ def main():
     while ui.is_alive():
         print("Waiting 1s to verify clean shutdown of the webcam process...")
         time.sleep(1)
+    ui.join()
 
     return 0
