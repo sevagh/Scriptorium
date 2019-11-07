@@ -5,6 +5,10 @@ import argparse
 import readline
 import asyncio
 import re
+import time
+
+TITLE = "Welcome to the Scriptorium"
+
 
 # https://github.com/tomplus/wordbook/blob/83c470a1c8bf1d38322442de4a79dece26626652/example/word-search-cli.py
 def print_line(line):
@@ -47,7 +51,14 @@ class Scriptorium(cmd.Cmd):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="OCR-based reading assistant")
+    parser = argparse.ArgumentParser(description=TITLE)
+    parser.add_argument(
+        "--webcam-id",
+        default=0,
+        type=int,
+        help="integer index of your webam e.g. [/dev/video]N",
+    )
+    parser.add_argument("--webcam-fps", default=15, type=int, help="webcam fps")
     parser.add_argument("--dictd-host", default="dict.org", type=str, help="dictd host")
     parser.add_argument("--dictd-port", default=2628, type=int, help="dictd port")
     parser.add_argument(
@@ -62,11 +73,17 @@ def main():
 
     args = parser.parse_args()
 
-    scriptorium_camera.hello_world()
+    ui = scriptorium_camera.UI(TITLE, args.webcam_id, args.webcam_fps)
+    ui.start()
 
     s = Scriptorium(args.dictd_host, args.dictd_port, args.dictd_db)
 
-    s.cmdloop(intro="Welcome to the Scriptorium")
+    s.cmdloop(intro=TITLE)
     s.cleanup()
+
+    ui.shutdown()
+    while ui.is_alive():
+        print("Waiting 1s to verify clean shutdown of the webcam process...")
+        time.sleep(1)
 
     return 0

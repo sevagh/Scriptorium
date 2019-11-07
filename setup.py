@@ -17,10 +17,10 @@ AUTHOR = 'Sevag Hanssian'
 REQUIRES_PYTHON = '>=3.7.0'
 VERSION = '0.0.1'
 
-REQUIRED = [
-    'DAWG',
-    'wordbook'
-]
+REQUIRED = []
+with open('./requirements.txt') as f:
+    for l in f:
+        REQUIRED.append(l[:-1])
 
 here = os.path.abspath(os.path.dirname(__file__))
 
