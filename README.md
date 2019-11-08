@@ -12,15 +12,7 @@ $ mpv av://v4l2:/dev/video4
 
 ### Dependencies
 
-Some of the dependencies were only installable with dnf:
-
-```
-$ sudo dnf install python3-imaging-tk \
-                    python3-tkinter \
-                    python3-qt4
-```
-
-Your virtualenv should inherit system packages. [DAWG](https://github.com/pytries/DAWG) must be installed from source.
+[DAWG](https://github.com/pytries/DAWG) must be installed from source. Everything else is in the requirements.txt (and setup.py).
 
 ### Dictionary setup
 

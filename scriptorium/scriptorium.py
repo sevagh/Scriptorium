@@ -4,40 +4,65 @@ import cmd
 import argparse
 import readline
 import time
-from PyQt4 import QtCore
-from multiprocessing import Queue
+from multiprocessing import Manager
 
 # weird
 # https://stackoverflow.com/questions/31952711/threading-pyqt-crashes-with-unknown-request-in-queue-while-dequeuing
-QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_X11InitThreads)
+# QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_X11InitThreads)
 
 TITLE = "Welcome to the Scriptorium"
 
 
 class Scriptorium(cmd.Cmd):
-    def __init__(self, dictionary_mgr):
-        self.d = dictionary_mgr
+    def __init__(
+        self,
+        webcam_id,
+        webcam_fps,
+        dictd_host,
+        dictd_port,
+        dictd_db,
+        word_queue,
+        word_dict,
+    ):
+        self.dictionary_mgr = scriptorium_dictionary.DictionaryManager(
+            word_queue, word_dict, dictd_host, dictd_port, dictd_db
+        )
+        self.dictionary_mgr.start()
+        self.webcam_id = webcam_id
+        self.webcam_fps = webcam_fps
+        self.word_queue = word_queue
         super().__init__()
 
     def do_look(self, word_or_phrase):
         "Print lookup of word or phrase"
         if not word_or_phrase:
             return
-        possible_worddata = self.d.dictionary.get(word_or_phrase, None)
+        possible_worddata = self.dictionary_mgr.dictionary.get(word_or_phrase, None)
         if possible_worddata:
-            for wd in possible_worddata:
-                word_data = scriptorium_dictionary.WordData.from_bytes(wd)
-                print(word_data)
+            print(possible_worddata)
         else:
             print("No definition found")
 
-    def do_list(self, arg):
+    def emptyline(self):
+        pass
+
+    def do_list(self, *args, **kwargs):
         "Print all words detected from OCR"
-        for k in self.d.dictionary.keys():
+        for k in self.dictionary_mgr.dictionary.keys():
             print(k)
+
+    def do_capture(self, *args, **kwargs):
+        "Launch an opencv window to capture an image and run OCR on it"
+        scriptorium_camera.capture_snapshot_and_ocr(
+            self.webcam_id, self.webcam_fps, self.word_queue
+        )
 
     def do_EOF(self, *args, **kwargs):
         print("")
+        return True
+
+    def do_exit(self, args):
+        self.dictionary_mgr.join()
         return True
 
 
@@ -49,7 +74,7 @@ def main():
         type=int,
         help="integer index of your webam e.g. [/dev/video]N",
     )
-    parser.add_argument("--webcam-fps", default=15, type=int, help="webcam fps")
+    parser.add_argument("--webcam-fps", default=10, type=int, help="webcam fps")
     parser.add_argument("--dictd-host", default="dict.org", type=str, help="dictd host")
     parser.add_argument("--dictd-port", default=2628, type=int, help="dictd port")
     parser.add_argument(
@@ -64,31 +89,21 @@ def main():
 
     args = parser.parse_args()
 
-    word_queue = Queue()
+    manager = Manager()
+    # the dictionary and all camera instantiations share OCR words with a Queue
+    word_queue = manager.Queue()
+    word_dict = manager.dict()
 
-    # the camera and dictionary share OCR words with a Queue
-    cam_ui = scriptorium_camera.UI(
-        TITLE,
+    s = Scriptorium(
         args.webcam_id,
         args.webcam_fps,
-        word_queue,
         args.dictd_host,
         args.dictd_port,
         args.dictd_db,
+        word_queue,
+        word_dict,
     )
-    cam_ui.start()
-
-    d = scriptorium_dictionary.DictionaryManager(word_queue)
-    d.start()
-
-    s = Scriptorium(d)
 
     s.cmdloop(intro=TITLE)
-
-    cam_ui.shutdown()
-    while cam_ui.is_alive():
-        print("Waiting 1s to verify clean shutdown of the webcam process...")
-        time.sleep(1)
-    cam_ui.join()
 
     return 0

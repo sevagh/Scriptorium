@@ -2,6 +2,8 @@ import multiprocessing
 import dawg
 import pickle
 import cv2
+import asyncio
+import wordbook
 
 
 class WordData:
@@ -23,15 +25,13 @@ class WordData:
 
     def __repr__(self):
         self.lookups += 1
-        print(self.word)
-        print("seen {0} times".format(len(self.img_paths)))
-        print("looked up {0} times".format(self.lookups))
-        for img_path in self.img_path:
-            cv2.imshow(self.img_path)
-        if self.auto_definition:
-            print(self.auto_definition)
-        if self.user_definition:
-            print(self.user_definition)
+        retstr = ""
+        retstr += "{0}\n".format(self.word)
+        retstr += "seen {0} times\n".format(len(self.img_paths))
+        retstr += "looked up {0} times\n".format(self.lookups)
+        retstr += "dict.org definition:\n{0}\n".format(self.auto_definition)
+        retstr += "user definition:\n{0}\n".format(self.user_definition)
+        return retstr
 
     @staticmethod
     def from_bytes(b):
@@ -40,23 +40,33 @@ class WordData:
 
 # https://pymotw.com/2/multiprocessing/communication.html
 class DictionaryManager(multiprocessing.Process):
-    def __init__(self, word_queue):
+    def __init__(self, word_queue, word_dict, dictd_host, dictd_port, dictd_db):
         # self.dawg = dawg.BytesDAWG() - we'll use this for future pickling
         self.word_queue = word_queue
         self.exit = False
-        self.dictionary = {}
+        self.dictionary = word_dict
+        self.asyncio_loop = asyncio.new_event_loop()
+        self.wb = wordbook.WordBook(host=dictd_host, port=dictd_port, database=dictd_db)
+        self.asyncio_loop.run_until_complete(self.wb.connect())
         super().__init__(target=self.run)
 
-    def shutdown(self):
+    def join(self):
         self.exit = True
+        self.asyncio_loop.run_until_complete(self.asyncio_loop.shutdown_asyncgens())
+        self.asyncio_loop.close()
+        super().join(self)
 
     def run(self):
         while not self.exit:
             next_word = self.word_queue.get()
-            word, path, definition = next_word
-            existing = self.dictionary.get(word, None)
-            if existing:
-                existing.seen_again(path)
-            else:
-                self.dictionary[word] = WordData(word, definition, path)
-            print(self.dictionary)
+            word, path = next_word
+
+            # check dict.org, only store words with definitions
+            definition = self.asyncio_loop.run_until_complete(self.wb.define(word))
+
+            if definition:
+                existing = self.dictionary.get(word, None)
+                if existing:
+                    existing.seen_again(path)
+                else:
+                    self.dictionary[word] = WordData(word, definition, path)
