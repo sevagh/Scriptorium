@@ -1,12 +1,11 @@
 import scriptorium.camera as scriptorium_camera
-import wordbook
+import scriptorium.dictionary as scriptorium_dictionary
 import cmd
 import argparse
 import readline
-import asyncio
-import re
 import time
 from PyQt4 import QtCore
+from multiprocessing import Queue
 
 # weird
 # https://stackoverflow.com/questions/31952711/threading-pyqt-crashes-with-unknown-request-in-queue-while-dequeuing
@@ -15,44 +14,31 @@ QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_X11InitThreads)
 TITLE = "Welcome to the Scriptorium"
 
 
-# https://github.com/tomplus/wordbook/blob/83c470a1c8bf1d38322442de4a79dece26626652/example/word-search-cli.py
-def print_line(line):
-    line, numr = re.subn(r"^\[(.*)\]\s*$", "\n\x1b[1;33m\\1\x1b[0m\n", line)
-    if numr > 0:
-        print(line)
-        return
-
-    line = re.sub(r"(\[[^\]]+\])", "\x1b[0;33m\\1\x1b[0m", line)
-    line = re.sub(r"({[^}]+})", "\x1b[0;36m\\1\x1b[0m", line)
-    print(line)
-
-
 class Scriptorium(cmd.Cmd):
-    def __init__(self, *args, **kwargs):
-        self.asyncio_loop = asyncio.new_event_loop()
-        self.wb = wordbook.WordBook(host=args[0], port=args[1], database=args[2])
-        self.asyncio_loop.run_until_complete(self.wb.connect())
+    def __init__(self, dictionary_mgr):
+        self.d = dictionary_mgr
         super().__init__()
 
     def do_look(self, word_or_phrase):
         "Print lookup of word or phrase"
         if not word_or_phrase:
             return
-        defines = self.asyncio_loop.run_until_complete(self.wb.define(word_or_phrase))
-        if defines:
-            for define in defines:
-                print_line(define)
-            print()
+        possible_worddata = self.d.dictionary.get(word_or_phrase, None)
+        if possible_worddata:
+            for wd in possible_worddata:
+                word_data = scriptorium_dictionary.WordData.from_bytes(wd)
+                print(word_data)
         else:
             print("No definition found")
+
+    def do_list(self, arg):
+        "Print all words detected from OCR"
+        for k in self.d.dictionary.keys():
+            print(k)
 
     def do_EOF(self, *args, **kwargs):
         print("")
         return True
-
-    def cleanup(self):
-        self.asyncio_loop.run_until_complete(self.asyncio_loop.shutdown_asyncgens())
-        self.asyncio_loop.close()
 
 
 def main():
@@ -78,18 +64,31 @@ def main():
 
     args = parser.parse_args()
 
-    ui = scriptorium_camera.UI(TITLE, args.webcam_id, args.webcam_fps)
-    ui.start()
+    word_queue = Queue()
 
-    s = Scriptorium(args.dictd_host, args.dictd_port, args.dictd_db)
+    # the camera and dictionary share OCR words with a Queue
+    cam_ui = scriptorium_camera.UI(
+        TITLE,
+        args.webcam_id,
+        args.webcam_fps,
+        word_queue,
+        args.dictd_host,
+        args.dictd_port,
+        args.dictd_db,
+    )
+    cam_ui.start()
+
+    d = scriptorium_dictionary.DictionaryManager(word_queue)
+    d.start()
+
+    s = Scriptorium(d)
 
     s.cmdloop(intro=TITLE)
-    s.cleanup()
 
-    ui.shutdown()
-    while ui.is_alive():
+    cam_ui.shutdown()
+    while cam_ui.is_alive():
         print("Waiting 1s to verify clean shutdown of the webcam process...")
         time.sleep(1)
-    ui.join()
+    cam_ui.join()
 
     return 0

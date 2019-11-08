@@ -2,3 +2,4 @@ wordbook
 opencv-python
 Pillow
 kraken
+pytesseract
