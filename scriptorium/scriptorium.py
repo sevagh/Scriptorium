@@ -6,6 +6,11 @@ import readline
 import asyncio
 import re
 import time
+from PyQt4 import QtCore
+
+# weird
+# https://stackoverflow.com/questions/31952711/threading-pyqt-crashes-with-unknown-request-in-queue-while-dequeuing
+QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_X11InitThreads)
 
 TITLE = "Welcome to the Scriptorium"
 

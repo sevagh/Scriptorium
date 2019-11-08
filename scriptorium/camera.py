@@ -1,4 +1,5 @@
 import tkinter
+from tkinter.messagebox import showinfo
 import cv2
 import PIL.Image, PIL.ImageTk
 import time
@@ -20,7 +21,7 @@ class UI(multiprocessing.Process):
         self.canvas.pack()
 
         self.btn_snapshot = tkinter.Button(
-            self.window, text="Snapshot", width=50, command=self.snapshot
+            self.window, text="SCAN", width=50, command=self.snapshot
         )
         self.btn_snapshot.pack(anchor=tkinter.CENTER, expand=True)
 
@@ -34,6 +35,8 @@ class UI(multiprocessing.Process):
 
     def shutdown(self):
         self.window.quit()
+        time.sleep(1)
+        self.window.destroy()
 
     def snapshot(self):
         ret, frame = self.vid.get_frame()
@@ -42,6 +45,7 @@ class UI(multiprocessing.Process):
                 "frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg",
                 cv2.cvtColor(frame, cv2.COLOR_RGB2BGR),
             )
+        showinfo("Picture saved: ")
 
     def update(self):
         ret, frame = self.vid.get_frame()

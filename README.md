@@ -16,7 +16,8 @@ Some of the dependencies were only installable with dnf:
 
 ```
 $ sudo dnf install python3-imaging-tk \
-                    python3-tkinter
+                    python3-tkinter \
+                    python3-qt4
 ```
 
 Your virtualenv should inherit system packages. [DAWG](https://github.com/pytries/DAWG) must be installed from source.
