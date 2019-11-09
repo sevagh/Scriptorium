@@ -1,9 +1,7 @@
 import multiprocessing
-import dawg
 import pickle
 import cv2
 import asyncio
-import wordbook
 
 
 class WordData:
@@ -38,7 +36,6 @@ class WordData:
         return pickle.loads(b)
 
 
-# https://pymotw.com/2/multiprocessing/communication.html
 class DictionaryManager(multiprocessing.Process):
     def __init__(self, word_queue, word_dict, dictd_host, dictd_port, dictd_db):
         # self.dawg = dawg.BytesDAWG() - we'll use this for future pickling

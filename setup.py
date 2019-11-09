@@ -17,10 +17,15 @@ AUTHOR = 'Sevag Hanssian'
 REQUIRES_PYTHON = '>=3.7.0'
 VERSION = '0.0.1'
 
-REQUIRED = []
+REQUIRES = []
 with open('./requirements.txt') as f:
     for l in f:
-        REQUIRED.append(l[:-1])
+        REQUIRES.append(l[:-1])
+
+TEST_REQUIRES = []
+with open('./requirements-test.txt') as f:
+    for l in f:
+        TEST_REQUIRES.append(l[:-1])
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -56,7 +61,8 @@ setup(
     entry_points={
         'console_scripts': ['Scriptorium=scriptorium.scriptorium:main'],
     },
-    install_requires=REQUIRED,
+    install_requires=REQUIRES,
+    tests_require=TEST_REQUIRES,
     include_package_data=True,
     license='MIT',
     classifiers=[

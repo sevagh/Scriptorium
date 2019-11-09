@@ -2,72 +2,81 @@ import cv2
 import PIL.Image
 import time
 import numpy
-from kraken.binarization import nlbin
-import pytesseract
-import wordbook
-import re
+from typing import List, Tuple
+from types import ModuleType
+import os
+import multiprocessing
+from .ocr import OCR
 
 
-# https://github.com/tomplus/wordbook/blob/83c470a1c8bf1d38322442de4a79dece26626652/example/word-search-cli.py
-def format_dictd_line(line):
-    line, numr = re.subn(r"^\[(.*)\]\s*$", "\n\x1b[1;33m\\1\x1b[0m\n", line)
-    if numr > 0:
-        print(line)
-        return
+class CameraManager(multiprocessing.Process):
+    title = "Press any key to scan - close window to exit"
 
-    line = re.sub(r"(\[[^\]]+\])", "\x1b[0;33m\\1\x1b[0m", line)
-    line = re.sub(r"({[^}]+})", "\x1b[0;36m\\1\x1b[0m", line)
-    return line
+    def __init__(
+        self,
+        video_source: int,
+        fps: int,
+        word_queue: multiprocessing.Queue,
+        workdir: str,
+        binarize: bool = False,
+    ):
+        vid = cv2.VideoCapture(video_source)
+        if not vid.isOpened():
+            raise ValueError("Unable to open video source", video_source)
 
+        self.vid = vid
+        self.delay_ms = int((1.0 / fps) * 1000.0)
+        self.workdir = workdir
+        self.word_queue = word_queue
+        self.ocr = OCR(binarize)
+        self.exit = False
+        super().__init__(target=self.run)
 
-TITLE = "Press any key to scan, OCR, and exit"
-
-
-def capture_snapshot_and_ocr(video_source, fps, word_queue):
-    vid = cv2.VideoCapture(video_source)
-    if not vid.isOpened():
-        raise ValueError("Unable to open video source", video_source)
-
-    video_source = video_source
-
-    width = vid.get(cv2.CAP_PROP_FRAME_WIDTH)
-    height = vid.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-    delay_ms = int((1.0 / fps) * 1000.0)
-
-    def get_frame(vid):
-        if vid.isOpened():
-            ret, frame = vid.read()
+    def _get_frame(self):
+        if self.vid.isOpened():
+            ret, frame = self.vid.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 return (True, frame)
         return (False, None)
 
-    def snapshot(frame):
-        pil_img = PIL.Image.fromarray(frame)
-        pil_img = nlbin(pil_img)
-        text = pytesseract.image_to_string(pil_img)
+    def snapshot(self, frame):
+        pil_im = PIL.Image.fromarray(frame)
+        filepath = os.path.join(
+            self.workdir, "frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg"
+        )
+        words, im = self.ocr.analyze(pil_im)
+        for word in words:
+            self.word_queue.put((word, filepath))
+        cv2.imwrite(filepath, numpy.array(im))
 
-        filepath = "frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg"
-        # store the binarized file for future lookups
-        cv2.imwrite(filepath, numpy.array(pil_img))
+    def run(self):
+        cv2.namedWindow(CameraManager.title)
+        ret, frame = self._get_frame()
 
-        # split on whitespace to get whole words
-        for word in text.split():
-            word_queue.put((word, filepath))
+        while not self.exit and ret:
+            cv2.imshow(CameraManager.title, frame)
+            ret, frame = self._get_frame()
+            key = cv2.waitKey(self.delay_ms)
+            if key != -1:  # any keypress, snapshot
+                if ret:
+                    self.snapshot(frame)
+                    frame = 0  # 'flash' the webcam feed to indicate a capture
+            elif (
+                cv2.getWindowProperty(CameraManager.title, cv2.WND_PROP_VISIBLE) == 0
+            ):  # esc
+                break
 
-    cv2.namedWindow(TITLE)
-    ret, frame = get_frame(vid)
+        return
 
-    while ret:
-        cv2.imshow(TITLE, frame)
-        ret, frame = get_frame(vid)
-        key = cv2.waitKey(delay_ms)
-        if key != -1:  # any keypress, snapshot + exit
-            if ret:
-                snapshot(frame)
-            break
-
-    cv2.destroyWindow(TITLE)
-    if vid.isOpened():
-        vid.release()
+    def shutdown(self):
+        self.exit = True
+        time.sleep(3.0 * self.delay_ms / 1000.0)
+        try:
+            cv2.destroyWindow(CameraManager.title)
+        except cv2.error:
+            pass
+        except Error:
+            raise
+        if self.vid.isOpened():
+            self.vid.release()

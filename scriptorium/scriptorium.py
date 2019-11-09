@@ -14,18 +14,9 @@ TITLE = "Welcome to the Scriptorium"
 
 
 class Scriptorium(cmd.Cmd):
-    def __init__(
-        self,
-        webcam_id,
-        webcam_fps,
-        dictd_host,
-        dictd_port,
-        dictd_db,
-        word_queue,
-        word_dict,
-    ):
+    def __init__(self, webcam_id, webcam_fps, word_queue, word_dict):
         self.dictionary_mgr = scriptorium_dictionary.DictionaryManager(
-            word_queue, word_dict, dictd_host, dictd_port, dictd_db
+            word_queue, word_dict
         )
         self.dictionary_mgr.start()
         self.webcam_id = webcam_id
@@ -75,11 +66,6 @@ def main():
         help="integer index of your webam e.g. [/dev/video]N",
     )
     parser.add_argument("--webcam-fps", default=10, type=int, help="webcam fps")
-    parser.add_argument("--dictd-host", default="dict.org", type=str, help="dictd host")
-    parser.add_argument("--dictd-port", default=2628, type=int, help="dictd port")
-    parser.add_argument(
-        "--dictd-db", default="fd-fra-eng", type=str, help="dictd db to use"
-    )
     parser.add_argument(
         "--workdir",
         default=None,
@@ -94,15 +80,7 @@ def main():
     word_queue = manager.Queue()
     word_dict = manager.dict()
 
-    s = Scriptorium(
-        args.webcam_id,
-        args.webcam_fps,
-        args.dictd_host,
-        args.dictd_port,
-        args.dictd_db,
-        word_queue,
-        word_dict,
-    )
+    s = Scriptorium(args.webcam_id, args.webcam_fps, word_queue, word_dict)
 
     s.cmdloop(intro=TITLE)
 
