@@ -1,6 +1,8 @@
 init:
 	python -m pip install -e .
-	python -m pip install -r requirements-test.txt
+
+dev_init:
+	python -m pip install -r requirements-dev.txt
 
 test:
 	py.test -s
@@ -9,6 +11,7 @@ lint:
 	pylint ./scriptorium --rcfile=./.pylintrc
 
 black:
+	black setup.py
 	black scriptorium/*.py
 	black tests/*.py
 

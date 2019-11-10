@@ -14,10 +14,10 @@ class WordData:
         self.lookups = lookups
         self.definition = definition
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         return pickle.dumps(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         retstr = ""
         retstr += "{0}\n".format(self.word)
         retstr += "  seen {0} times\n".format(len(self.paths))
@@ -27,7 +27,7 @@ class WordData:
         return retstr[:-1]
 
     @staticmethod
-    def from_bytes(b):
+    def from_bytes(b: bytes) -> "WordData":
         return pickle.loads(b)
 
 
@@ -59,7 +59,7 @@ class DictionaryManager(multiprocessing.Process):
         self._persist_bytes_dawg()
         self.alive.clear()
 
-    def get_completion_dawg(self):
+    def get_completion_dawg(self) -> dawg.CompletionDAWG:
         return dawg.CompletionDAWG(self.word_dict.keys())
 
     def run(self):

@@ -9,29 +9,24 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'Scriptorium'
-DESCRIPTION = 'OCR-based reading assistant'
-URL = 'https://github.com/sevagh/Scriptorium'
-EMAIL = 'sevag.hanssian@gmail.com'
-AUTHOR = 'Sevag Hanssian'
-REQUIRES_PYTHON = '>=3.7.0'
-VERSION = '0.0.1'
+NAME = "Scriptorium"
+DESCRIPTION = "OCR-based reading assistant"
+URL = "https://github.com/sevagh/Scriptorium"
+EMAIL = "sevag.hanssian@gmail.com"
+AUTHOR = "Sevag Hanssian"
+REQUIRES_PYTHON = ">=3.7.0"
+VERSION = "0.0.1"
 
 REQUIRES = []
-with open('./requirements.txt') as f:
+with open("./requirements.txt") as f:
     for l in f:
         REQUIRES.append(l[:-1])
-
-TEST_REQUIRES = []
-with open('./requirements-test.txt') as f:
-    for l in f:
-        TEST_REQUIRES.append(l[:-1])
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 try:
-    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
-        long_description = '\n' + f.read()
+    with io.open(os.path.join(here, "README.md"), encoding="utf-8") as f:
+        long_description = "\n" + f.read()
 except FileNotFoundError:
     long_description = DESCRIPTION
 
@@ -39,32 +34,29 @@ except FileNotFoundError:
 about = {}
 if not VERSION:
     project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
-    with open(os.path.join(here, project_slug, '__version__.py')) as f:
+    with open(os.path.join(here, project_slug, "__version__.py")) as f:
         exec(f.read(), about)
 else:
-    about['__version__'] = VERSION
+    about["__version__"] = VERSION
 
 
 # Where the magic happens:
 setup(
     name=NAME,
-    version=about['__version__'],
+    version=about["__version__"],
     description=DESCRIPTION,
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     author=AUTHOR,
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    packages=find_packages(exclude=('tests',)),
-    py_modules=['scriptorium'],
-    entry_points={
-        'console_scripts': ['Scriptorium=scriptorium.scriptorium:main'],
-    },
+    packages=find_packages(exclude=("tests",)),
+    py_modules=["scriptorium"],
+    entry_points={"console_scripts": ["Scriptorium=scriptorium.scriptorium:main"]},
     install_requires=REQUIRES,
-    tests_require=TEST_REQUIRES,
     include_package_data=True,
-    license='MIT',
+    license="MIT",
     classifiers=[
         # Trove classifiers
         # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
