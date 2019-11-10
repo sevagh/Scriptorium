@@ -1,7 +1,5 @@
 import multiprocessing
 import pickle
-import cv2
-import asyncio
 
 
 class WordData:
@@ -42,15 +40,10 @@ class DictionaryManager(multiprocessing.Process):
         self.word_queue = word_queue
         self.exit = False
         self.dictionary = word_dict
-        self.asyncio_loop = asyncio.new_event_loop()
-        self.wb = wordbook.WordBook(host=dictd_host, port=dictd_port, database=dictd_db)
-        self.asyncio_loop.run_until_complete(self.wb.connect())
         super().__init__(target=self.run)
 
-    def join(self):
+    def shutdown(self):
         self.exit = True
-        self.asyncio_loop.run_until_complete(self.asyncio_loop.shutdown_asyncgens())
-        self.asyncio_loop.close()
         super().join(self)
 
     def run(self):
@@ -59,8 +52,6 @@ class DictionaryManager(multiprocessing.Process):
             word, path = next_word
 
             # check dict.org, only store words with definitions
-            definition = self.asyncio_loop.run_until_complete(self.wb.define(word))
-
             if definition:
                 existing = self.dictionary.get(word, None)
                 if existing:

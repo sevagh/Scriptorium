@@ -6,7 +6,7 @@ test:
 	py.test -s
 
 lint:
-	pylint ./scriptorium
+	pylint ./scriptorium --rcfile=./.pylintrc
 
 black:
 	black scriptorium/*.py
