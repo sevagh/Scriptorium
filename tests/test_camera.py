@@ -8,10 +8,10 @@ import os
 
 def test_scriptorium_camera():
     mgr = multiprocessing.Manager()
-    queue = mgr.Queue()
+    q = mgr.Queue()
 
     with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
-        cam_manager = sc.CameraManager((0, 10), queue, workdir)
+        cam_manager = sc.CameraManager((0, 10), q, workdir)
         cam_manager.start()
 
         while cam_manager.is_alive():
