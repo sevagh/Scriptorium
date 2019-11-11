@@ -45,7 +45,9 @@ def test_scriptorium_dictionary():
         assert val.lookups == 2
         assert val.definition == "test_def"
 
-        bytes_dawg_path = dict_manager.bytes_dawg_path
+        bytes_dawg_path = os.path.join(
+            dict_manager.workdir, sd.DictionaryManager.persist_name
+        )
 
         completion = dict_manager.get_completion_dawg()
         test_words_from_dawg = completion.keys("test")

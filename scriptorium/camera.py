@@ -44,11 +44,12 @@ class CameraManager(multiprocessing.Process):
 
     def snapshot(self, frame: numpy.ndarray):
         pil_im = PIL.Image.fromarray(frame)
-        filepath = os.path.join(
-            self.workdir, "frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg"
-        )
         words, im = self.ocr.analyze(pil_im)
-        if len(words) > 0:
+        filepath = ""
+        if self.workdir and len(words) > 0:
+            filepath = os.path.join(
+                self.workdir, "frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg"
+            )
             cv2.imwrite(filepath, numpy.array(im))
         for word in words:
             self.word_queue.put((word, filepath))

@@ -27,7 +27,7 @@ class WordData:
         return retstr[:-1]
 
     @staticmethod
-    def from_bytes(b: bytes) -> "WordData":
+    def frombytes(b: bytes) -> "WordData":
         return pickle.loads(b)
 
 
@@ -38,22 +38,28 @@ class DictionaryManager(multiprocessing.Process):
         self.word_queue, self.word_dict = word_structs
         self.alive = multiprocessing.Event()
         self.alive.set()
-        self.bytes_dawg_path = os.path.join(workdir, DictionaryManager.persist_name)
-        if os.path.isfile(self.bytes_dawg_path):
-            self._load_bytes_dawg()
+        self.workdir = workdir
+        self._load_bytes_dawg()
 
         super().__init__(target=self.run)
 
     def _load_bytes_dawg(self):
-        bytes_dawg = dawg.BytesDAWG()
-        bytes_dawg.load(self.bytes_dawg_path)
-        for k, v in bytes_dawg.iteritems():
-            self.word_dict[k] = WordData.from_bytes(v)
-        self.completion_dawg = dawg.CompletionDAWG(self.word_dict.keys())
+        if self.workdir and os.path.isdir(self.workdir):
+            bytes_dawg_path = os.path.join(self.workdir, DictionaryManager.persist_name)
+            if os.path.isfile(bytes_dawg_path):
+                bytes_dawg = dawg.BytesDAWG()
+                bytes_dawg.load(bytes_dawg_path)
+                for k, v in bytes_dawg.iteritems():
+                    self.word_dict[k] = WordData.frombytes(v)
+                self.completion_dawg = dawg.CompletionDAWG(self.word_dict.keys())
 
     def _persist_bytes_dawg(self):
-        bytes_dawg = dawg.BytesDAWG([(k, bytes(v)) for k, v in self.word_dict.items()])
-        bytes_dawg.save(self.bytes_dawg_path)
+        if self.workdir and os.path.isdir(self.workdir):
+            bytes_dawg_path = os.path.join(self.workdir, DictionaryManager.persist_name)
+            bytes_dawg = dawg.BytesDAWG(
+                [(k, bytes(v)) for k, v in self.word_dict.items()]
+            )
+            bytes_dawg.save(bytes_dawg_path)
 
     def shutdown(self):
         self._persist_bytes_dawg()
