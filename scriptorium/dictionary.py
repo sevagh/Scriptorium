@@ -24,6 +24,11 @@ class WordData:
         retstr += "  looked up {0} times\n".format(self.lookups)
         if self.definition:
             retstr += "  definition:  {0}\n".format(self.definition)
+        if any([p for p in self.paths]):
+            retstr += "\nappears in:\n"
+        for p in self.paths:
+            if p:
+                retstr += "\t{0}\n".format(p)
         return retstr[:-1]
 
     @staticmethod
@@ -32,7 +37,7 @@ class WordData:
 
 
 class DictionaryManager(multiprocessing.Process):
-    persist_name = ".scriptorium.dawg"
+    persist_name = "scriptorium.dawg"
 
     def __init__(self, word_structs, workdir):
         self.word_queue, self.word_dict = word_structs

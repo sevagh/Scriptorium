@@ -4,6 +4,7 @@ import cmd
 import argparse
 import readline
 import time
+import cv2
 from multiprocessing import Manager
 
 TITLE = "Welcome to the Scriptorium"
@@ -25,12 +26,12 @@ class Scriptorium(cmd.Cmd):
     def emptyline(self):
         pass
 
-    def do_look(self, word_or_phrase):
-        "Print lookup of word or phrase"
-        if not word_or_phrase:
+    def do_show(self, word):
+        "Show word info"
+        if not word:
             return
         try:
-            worddata = self.dictionary_mgr.look(word_or_phrase)
+            worddata = self.dictionary_mgr.look(word)
             print(worddata)
         except KeyError:
             print("Word is not in dictionary")
@@ -45,8 +46,6 @@ class Scriptorium(cmd.Cmd):
         try:
             args = args.split()
             word, definition = args[0], " ".join(args[1:])
-            print(word)
-            print(definition)
             self.dictionary_mgr.define(word, definition)
         except KeyError:
             print("Word is not in dictionary")

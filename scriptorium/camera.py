@@ -2,6 +2,8 @@ import cv2
 import PIL.Image
 import time
 import numpy
+import random
+import string
 from typing import List, Tuple
 from types import ModuleType
 import os
@@ -48,7 +50,13 @@ class CameraManager(multiprocessing.Process):
         filepath = ""
         if self.workdir and len(words) > 0:
             filepath = os.path.join(
-                self.workdir, "frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg"
+                self.workdir,
+                "frame-{0}-{1}.jpg".format(
+                    time.strftime("%d-%m-%Y-%H-%M-%S"),
+                    "".join(
+                        random.choices(string.ascii_uppercase + string.digits, k=6)
+                    ),
+                ),
             )
             cv2.imwrite(filepath, numpy.array(im))
         for word in words:
