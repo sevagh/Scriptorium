@@ -3,12 +3,12 @@ import pickle
 import queue
 import dawg
 import os
-from typing import List
+from typing import List, Tuple, Dict
 import time
 
 
 class WordData:
-    def __init__(self, word, paths, lookups, definition):
+    def __init__(self, word: str, paths: List[str], lookups: int, definition: str):
         self.word = word
         self.paths = paths
         self.lookups = lookups
@@ -39,7 +39,11 @@ class WordData:
 class DictionaryManager(multiprocessing.Process):
     persist_name = "scriptorium.dawg"
 
-    def __init__(self, word_structs, workdir):
+    def __init__(
+        self,
+        word_structs: Tuple[multiprocessing.Queue, Dict[str, WordData]],
+        workdir: str,
+    ):
         self.word_queue, self.word_dict = word_structs
         self.alive = multiprocessing.Event()
         self.alive.set()
@@ -48,7 +52,7 @@ class DictionaryManager(multiprocessing.Process):
 
         super().__init__(target=self.run)
 
-    def _load_bytes_dawg(self):
+    def _load_bytes_dawg(self) -> None:
         if self.workdir and os.path.isdir(self.workdir):
             bytes_dawg_path = os.path.join(self.workdir, DictionaryManager.persist_name)
             if os.path.isfile(bytes_dawg_path):
@@ -58,7 +62,7 @@ class DictionaryManager(multiprocessing.Process):
                     self.word_dict[k] = WordData.frombytes(v)
                 self.completion_dawg = dawg.CompletionDAWG(self.word_dict.keys())
 
-    def _persist_bytes_dawg(self):
+    def _persist_bytes_dawg(self) -> None:
         if self.workdir and os.path.isdir(self.workdir) and len(self.word_dict) > 0:
             bytes_dawg_path = os.path.join(self.workdir, DictionaryManager.persist_name)
             bytes_dawg = dawg.BytesDAWG(
@@ -66,14 +70,14 @@ class DictionaryManager(multiprocessing.Process):
             )
             bytes_dawg.save(bytes_dawg_path)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self._persist_bytes_dawg()
         self.alive.clear()
 
     def get_completion_dawg(self) -> dawg.CompletionDAWG:
         return dawg.CompletionDAWG(self.word_dict.keys())
 
-    def run(self):
+    def run(self) -> None:
         while self.alive.is_set():
             next_word = None
             try:
@@ -105,7 +109,7 @@ class DictionaryManager(multiprocessing.Process):
     def list(self) -> List[str]:
         return list(self.word_dict.keys())
 
-    def define(self, word: str, definition: str):
+    def define(self, word: str, definition: str) -> None:
         exist = self.word_dict.get(word, None)
         if exist:
             self.word_dict[word] = WordData(

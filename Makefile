@@ -16,7 +16,7 @@ black:
 	black tests/*.py
 
 mypy:
-	mypy ./scriptorium
+	mypy --disallow-untyped-defs --check-untyped-defs --disallow-untyped-calls --follow-imports silent ./scriptorium
 
 
 .PHONY: init test lint black mypy

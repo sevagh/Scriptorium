@@ -7,19 +7,19 @@ import time
 import sys
 import cv2
 import signal
-from multiprocessing import Manager
+from typing import Dict
+import multiprocessing
 
 TITLE = "Welcome to the Scriptorium"
 
 
 class Scriptorium(cmd.Cmd):
-    def __init__(self, webcam_id, webcam_fps, workdir):
+    def __init__(self, webcam_id: int, webcam_fps: int, workdir: str):
         original_sigint_handler = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-        m = Manager()
-        self.q = m.JoinableQueue()
-        d = m.dict()
+        self.q = multiprocessing.JoinableQueue()
+        d: Dict[str, sd.WordData] = multiprocessing.Manager().dict()
 
         self.camera_mgr = sc.CameraManager((webcam_id, webcam_fps), self.q, workdir)
         self.dictionary_mgr = sd.DictionaryManager((self.q, d), workdir)
@@ -30,10 +30,10 @@ class Scriptorium(cmd.Cmd):
 
         super().__init__()
 
-    def emptyline(self):
+    def emptyline(self) -> bool:
         pass
 
-    def do_show(self, word):
+    def do_show(self, word: str) -> None:
         "Show word info"
         if not word:
             return
@@ -43,37 +43,39 @@ class Scriptorium(cmd.Cmd):
         except KeyError:
             print("Word is not in dictionary")
 
-    def do_look_fuzzy(self, prefix):
+    def do_fuzzy(self, prefix: str) -> None:
         "Print stored words that match prefix"
         completion_dawg = self.dictionary_mgr.get_completion_dawg()
         print(" ".join(completion_dawg.keys(prefix)))
 
-    def do_define(self, args):
+    def do_define(self, args: str) -> None:
         "Define word"
         try:
-            args = args.split()
-            word, definition = args[0], " ".join(args[1:])
+            args_split = args.split()
+            word, definition = args_split[0], " ".join(args_split[1:])
             self.dictionary_mgr.define(word, definition)
         except KeyError:
             print("Word is not in dictionary")
 
-    def do_list(self, *args, **kwargs):
+    def do_list(self, args: str) -> None:
         "Print all words detected from OCR"
         print(" ".join(self.dictionary_mgr.list()))
 
-    def do_EOF(self, *args, **kwargs):
+    def do_EOF(self, args: str) -> bool:
         print("")
-        return self.do_exit(args, kwargs)
+        return self.do_exit(args)
 
-    def do_exit(self, *args, **kwargs):
+    def do_exit(self, args: str) -> bool:
         self.camera_mgr.shutdown()
         self.camera_mgr.join()
         self.q.join()
+        self.q.close()
+        self.q.join_thread()
         self.dictionary_mgr.shutdown()
         self.dictionary_mgr.join()
         return True
 
-    def cmdloop_with_keyboard_interrupt(self, intro):
+    def cmdloop_with_keyboard_interrupt(self, intro: str) -> None:
         quit = False
         self.intro = intro
         while not quit:
@@ -85,7 +87,7 @@ class Scriptorium(cmd.Cmd):
                 self.intro = None
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description=TITLE)
     parser.add_argument(
         "--webcam-id",

@@ -44,7 +44,7 @@ class CameraManager(multiprocessing.Process):
                 return (True, frame)
         return (False, None)
 
-    def snapshot(self, frame: numpy.ndarray):
+    def snapshot(self, frame: numpy.ndarray) -> None:
         pil_im = PIL.Image.fromarray(frame)
         words, im = self.ocr.analyze(pil_im)
         filepath = ""
@@ -62,7 +62,7 @@ class CameraManager(multiprocessing.Process):
         for word in words:
             self.word_queue.put((word, filepath))
 
-    def run(self):
+    def run(self) -> None:
         cv2.namedWindow(CameraManager.title)
         ret, frame = self._get_frame()
 
@@ -81,7 +81,7 @@ class CameraManager(multiprocessing.Process):
 
         return
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.alive.clear()
         time.sleep(2.0 * self.delay_ms / 1000.0)
         # cv2.waitKey(0)
