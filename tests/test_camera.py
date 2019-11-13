@@ -4,8 +4,10 @@ import queue
 import tempfile
 import time
 import os
+import pytest
 
 
+@pytest.mark.skip(reason="this test is very specific to a local webcam setup")
 def test_scriptorium_camera():
     mgr = multiprocessing.Manager()
     q = mgr.Queue()
@@ -21,6 +23,7 @@ def test_scriptorium_camera():
         cam_manager.join()
 
 
+@pytest.mark.skip(reason="this test is very specific to a local webcam setup")
 def test_scriptorium_camera_ocr_queue():
     mgr = multiprocessing.Manager()
     q = mgr.Queue()
