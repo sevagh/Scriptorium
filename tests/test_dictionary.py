@@ -23,7 +23,6 @@ def test_scriptorium_dictionary():
             except queue.Full:
                 continue
         q.put(("test1", "fakepath2.jpg"))
-        q.put(None)  # marks end of word stream
 
         time.sleep(1)
 

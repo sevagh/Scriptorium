@@ -4,7 +4,9 @@ import cmd
 import argparse
 import readline
 import time
+import sys
 import cv2
+import signal
 from multiprocessing import Manager
 
 TITLE = "Welcome to the Scriptorium"
@@ -12,15 +14,20 @@ TITLE = "Welcome to the Scriptorium"
 
 class Scriptorium(cmd.Cmd):
     def __init__(self, webcam_id, webcam_fps, workdir):
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
         m = Manager()
-        q = m.Queue()
+        self.q = m.JoinableQueue()
         d = m.dict()
 
-        self.camera_mgr = sc.CameraManager((webcam_id, webcam_fps), q, workdir)
-        self.dictionary_mgr = sd.DictionaryManager((q, d), workdir)
-
+        self.camera_mgr = sc.CameraManager((webcam_id, webcam_fps), self.q, workdir)
+        self.dictionary_mgr = sd.DictionaryManager((self.q, d), workdir)
         self.dictionary_mgr.start()
         self.camera_mgr.start()
+
+        signal.signal(signal.SIGINT, handler=original_sigint_handler)
+
         super().__init__()
 
     def emptyline(self):
@@ -56,14 +63,26 @@ class Scriptorium(cmd.Cmd):
 
     def do_EOF(self, *args, **kwargs):
         print("")
-        return True
+        return self.do_exit(args, kwargs)
 
-    def do_exit(self, args):
-        self.dictionary_mgr.shutdown()
-        self.dictionary_mgr.join()
+    def do_exit(self, *args, **kwargs):
         self.camera_mgr.shutdown()
         self.camera_mgr.join()
+        self.q.join()
+        self.dictionary_mgr.shutdown()
+        self.dictionary_mgr.join()
         return True
+
+    def cmdloop_with_keyboard_interrupt(self, intro):
+        quit = False
+        self.intro = intro
+        while not quit:
+            try:
+                self.cmdloop()
+                quit = True
+            except KeyboardInterrupt:
+                sys.stdout.write("\n")
+                self.intro = None
 
 
 def main():
@@ -85,6 +104,6 @@ def main():
     args = parser.parse_args()
 
     s = Scriptorium(args.webcam_id, args.webcam_fps, args.workdir)
-    s.cmdloop(intro=TITLE)
+    s.cmdloop_with_keyboard_interrupt(TITLE)
 
     return 0

@@ -59,7 +59,7 @@ class DictionaryManager(multiprocessing.Process):
                 self.completion_dawg = dawg.CompletionDAWG(self.word_dict.keys())
 
     def _persist_bytes_dawg(self):
-        if self.workdir and os.path.isdir(self.workdir):
+        if self.workdir and os.path.isdir(self.workdir) and len(self.word_dict) > 0:
             bytes_dawg_path = os.path.join(self.workdir, DictionaryManager.persist_name)
             bytes_dawg = dawg.BytesDAWG(
                 [(k, bytes(v)) for k, v in self.word_dict.items()]
@@ -78,8 +78,6 @@ class DictionaryManager(multiprocessing.Process):
             next_word = None
             try:
                 next_word = self.word_queue.get(timeout=1)
-                if not next_word:  # received a 'end of stream'
-                    continue
                 word, path = next_word
                 exist = self.word_dict.get(word, None)
                 if exist:
@@ -91,6 +89,7 @@ class DictionaryManager(multiprocessing.Process):
                     )
                 else:
                     self.word_dict[word] = WordData(word, [path], 0, "")
+                self.word_queue.task_done()
             except queue.Empty:
                 continue
 

@@ -61,9 +61,6 @@ class CameraManager(multiprocessing.Process):
             cv2.imwrite(filepath, numpy.array(im))
         for word in words:
             self.word_queue.put((word, filepath))
-        self.word_queue.put(
-            None
-        )  # use a 'poison pill' simply to mark the end of a stream
 
     def run(self):
         cv2.namedWindow(CameraManager.title)
@@ -86,8 +83,8 @@ class CameraManager(multiprocessing.Process):
 
     def shutdown(self):
         self.alive.clear()
-        time.sleep(3.0 * self.delay_ms / 1000.0)
-        cv2.waitKey(0)
+        time.sleep(2.0 * self.delay_ms / 1000.0)
+        # cv2.waitKey(0)
         try:
             cv2.destroyWindow(CameraManager.title)
         except cv2.error as e:
