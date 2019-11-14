@@ -24,8 +24,10 @@ class Scriptorium(cmd.Cmd):
         ] = multiprocessing.JoinableQueue()
         d: Dict[str, sd.WordData] = multiprocessing.Manager().dict()
 
+        self.snapshot_event = multiprocessing.Event()
+
         self.camera_mgr = sc.CameraManager(
-            (webcam_id, webcam_fps), self.q, workdir, binarize
+            (webcam_id, webcam_fps), self.q, self.snapshot_event, workdir, binarize
         )
         self.dictionary_mgr = sd.DictionaryManager((self.q, d), workdir)
         self.dictionary_mgr.start()
@@ -55,15 +57,22 @@ class Scriptorium(cmd.Cmd):
 
     def do_fuzzy(self, prefix: str) -> None:
         "Print stored words that match prefix"
-        completion_dawg = self.dictionary_mgr.get_completion_dawg()
-        print(" ".join(completion_dawg.keys(prefix)))
+        if self.snapshot_event.is_set():
+            self.q.join()
+            self.completion_dawg = self.dictionary_mgr.get_completion_dawg()
+            self.snapshot_event.clear()
+        print(" ".join(self.completion_dawg.keys(prefix)))
 
     def do_define(self, args: str) -> None:
         "Define word"
+        if len(args) == 0:
+            print("Args: <word> <definition...>")
+            return
         try:
             args_split = args.split()
             word, definition = args_split[0], " ".join(args_split[1:])
-            self.dictionary_mgr.define(word, definition)
+            if definition:
+                self.dictionary_mgr.define(word, definition)
             try:
                 self.splaytree.search(word)
             except ValueError:
@@ -77,18 +86,22 @@ class Scriptorium(cmd.Cmd):
 
     def do_recentk(self, args: str) -> None:
         "Print (approximated) recent k looked/defined words"
+        if len(args) == 0:
+            print("Args: <k>")
+            return
         try:
             k = int(args[0])
         except ValueError:
             print("Provide a valid integer k, not {0}".format(k))
-        print(self.splaytree.recentk(k))
-        print(self.splay_lookups)
         for k_ in self.splaytree.recentk(k):
-            worddata = self.dictionary_mgr.look(self.splay_lookups[k_])
+            worddata = self.dictionary_mgr.look(k_)
             print(worddata)
 
     def do_add(self, args: str) -> None:
         "Add word (not picked up by OCR)"
+        if len(args) == 0:
+            print("Args: <word> [<definition...>]")
+            return
         args_split = args.split()
         word = args_split[0]
         try:

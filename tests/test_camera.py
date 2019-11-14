@@ -9,10 +9,11 @@ import os
 def test_camera(webcam_id):
     print("interactive exit/clean shutdown test - click x to close the cam window")
     mgr = multiprocessing.Manager()
+    e = multiprocessing.Event()
     q = mgr.Queue()
 
     with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
-        cam_manager = sc.CameraManager((int(webcam_id), 10), q, workdir)
+        cam_manager = sc.CameraManager((int(webcam_id), 10), q, e, workdir)
         cam_manager.start()
 
         while cam_manager.is_alive():
@@ -28,13 +29,14 @@ def test_camera_ocr_queue(webcam_id):
     )
 
     mgr = multiprocessing.Manager()
+    e = multiprocessing.Event()
     q = mgr.Queue()
 
     # a strange test that requires a functioning camera to be pointing at any kind of text
     count = 0
 
     with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
-        cam_manager = sc.CameraManager((int(webcam_id), 10), q, workdir)
+        cam_manager = sc.CameraManager((int(webcam_id), 10), q, e, workdir)
         cam_manager.start()
 
         while cam_manager.is_alive():

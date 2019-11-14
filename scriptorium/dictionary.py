@@ -66,7 +66,7 @@ class DictionaryManager(multiprocessing.Process):
         if self.workdir and len(self.word_dict) > 0:
             if not os.path.isdir(self.workdir):
                 print(
-                    "[BytesDAWG] Are you sure workdir is a directory? Not persisting dictionary.".format(
+                    "[BytesDAWG] Are you sure {0} is a directory? Not persisting dictionary.".format(
                         self.workdir
                     )
                 )

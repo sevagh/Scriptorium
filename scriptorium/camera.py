@@ -8,6 +8,7 @@ from typing import List, Tuple
 from types import ModuleType
 import os
 import multiprocessing
+import multiprocessing.synchronize
 from scriptorium.ocr import OCR
 
 
@@ -18,6 +19,7 @@ class CameraManager(multiprocessing.Process):
         self,
         cam_opts: Tuple[int, int],
         word_queue: multiprocessing.Queue,
+        snapshot_event: multiprocessing.synchronize.Event,
         workdir: str,
         binarize: bool = False,
     ):
@@ -31,6 +33,7 @@ class CameraManager(multiprocessing.Process):
         self.delay_ms = int((1.0 / fps) * 1000.0)
         self.workdir = workdir
         self.word_queue = word_queue
+        self.snapshot_event = snapshot_event
         self.ocr = OCR(binarize)
         self.alive = multiprocessing.Event()
         self.alive.set()
@@ -69,6 +72,7 @@ class CameraManager(multiprocessing.Process):
                 filepath = ""
         for word in words:
             self.word_queue.put((word, filepath))
+        self.snapshot_event.set()
 
     def run(self) -> None:
         cv2.namedWindow(CameraManager.title)

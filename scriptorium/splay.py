@@ -17,7 +17,7 @@ _RIGHT = 1
 class _Node:
     def __init__(self, key: str):
         self.key = key
-        self.children: List[str] = [NULL, NULL]
+        self.children: List[int] = [NULL, NULL]
         self.parent = NULL
 
     def __repr__(self) -> str:
@@ -103,7 +103,7 @@ class SplayTree:
     def recentk(self, k: int) -> List[str]:
         """do a little bfs to return k nodes at the top of the splay tree - no splaying, this shouldn't mutate the tree"""
         """unscientific as heck"""
-        recentk = []
+        recentk: List[str] = []
         q = [self.root]
         while q and len(recentk) < k:
             curr, q = q[0], q[1:]
@@ -115,7 +115,7 @@ class SplayTree:
 
     def search(self, key: str) -> str:
         if self.root == NULL:
-            raise ValueError(key + " is not in SplayTree".format(key))
+            raise ValueError(key + " is not in SplayTree")
         parent = self.root
         while True:
             direction = _RIGHT
@@ -133,5 +133,5 @@ class SplayTree:
             # raise ValueError
             if curr == NULL:
                 self.splay(parent)
-                raise ValueError(key + " is not in SplayTree".format(key))
+                raise ValueError(key + " is not in SplayTree")
             parent = curr
