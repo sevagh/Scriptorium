@@ -8,7 +8,7 @@ from typing import List, Tuple
 from types import ModuleType
 import os
 import multiprocessing
-from .ocr import OCR
+from scriptorium.ocr import OCR
 
 
 class CameraManager(multiprocessing.Process):
@@ -58,7 +58,15 @@ class CameraManager(multiprocessing.Process):
                     ),
                 ),
             )
-            cv2.imwrite(filepath, numpy.array(im))
+            if not os.path.isdir(self.workdir) or not cv2.imwrite(
+                filepath, numpy.array(im)
+            ):
+                print(
+                    "[CameraManager] Couldn't write image to path {0}, are you sure the workdir exists and is writeable?".format(
+                        filepath
+                    )
+                )
+                filepath = ""
         for word in words:
             self.word_queue.put((word, filepath))
 

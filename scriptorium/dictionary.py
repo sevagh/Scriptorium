@@ -63,12 +63,26 @@ class DictionaryManager(multiprocessing.Process):
                 self.completion_dawg = dawg.CompletionDAWG(self.word_dict.keys())
 
     def _persist_bytes_dawg(self) -> None:
-        if self.workdir and os.path.isdir(self.workdir) and len(self.word_dict) > 0:
+        if self.workdir and len(self.word_dict) > 0:
+            if not os.path.isdir(self.workdir):
+                print(
+                    "[BytesDAWG] Are you sure workdir is a directory? Not persisting dictionary.".format(
+                        self.workdir
+                    )
+                )
+                return
             bytes_dawg_path = os.path.join(self.workdir, DictionaryManager.persist_name)
             bytes_dawg = dawg.BytesDAWG(
                 [(k, bytes(v)) for k, v in self.word_dict.items()]
             )
-            bytes_dawg.save(bytes_dawg_path)
+            try:
+                bytes_dawg.save(bytes_dawg_path)
+            except FileNotFoundError:
+                print(
+                    "[BytesDAWG] Couldn't persist dictionary to path {0}, are you sure the workdir exists and is writeable?".format(
+                        bytes_dawg_path
+                    )
+                )
 
     def shutdown(self) -> None:
         self._persist_bytes_dawg()

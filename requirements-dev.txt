@@ -2,3 +2,4 @@ pytest
 mypy
 pylint
 black
+hypothesis

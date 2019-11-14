@@ -9,15 +9,15 @@ Theoretical implementation are from Goodrich & Tamassia
 Deletions not implemented because I won't use them
 """
 
-NULL = -1
+NULL = sys.maxsize
 _LEFT = 0
 _RIGHT = 1
 
 
 class _Node:
-    def __init__(self, key: int):
+    def __init__(self, key: str):
         self.key = key
-        self.children: List[int] = [NULL, NULL]
+        self.children: List[str] = [NULL, NULL]
         self.parent = NULL
 
     def __repr__(self) -> str:
@@ -27,7 +27,7 @@ class _Node:
 
 
 class SplayTree:
-    def __init__(self):
+    def __init__(self) -> None:
         self.nodes: List[_Node] = []
         self.root = NULL
 
@@ -81,7 +81,7 @@ class SplayTree:
                 self.rotate(parent, curr)
                 self.rotate(grandparent, curr)
 
-    def insert(self, key: int) -> None:
+    def insert(self, key: str) -> None:
         new = len(self.nodes)
         self.nodes.append(_Node(key))
 
@@ -100,9 +100,22 @@ class SplayTree:
                     break
                 parent = curr
 
-    def search(self, key: int) -> int:
+    def recentk(self, k: int) -> List[str]:
+        """do a little bfs to return k nodes at the top of the splay tree - no splaying, this shouldn't mutate the tree"""
+        """unscientific as heck"""
+        recentk = []
+        q = [self.root]
+        while q and len(recentk) < k:
+            curr, q = q[0], q[1:]
+            recentk.append(self.nodes[curr].key)
+            for c in self.nodes[curr].children:
+                if c != NULL:
+                    q.append(c)
+        return recentk
+
+    def search(self, key: str) -> str:
         if self.root == NULL:
-            return NULL
+            raise ValueError(key + " is not in SplayTree".format(key))
         parent = self.root
         while True:
             direction = _RIGHT
@@ -117,7 +130,8 @@ class SplayTree:
             curr = self.nodes[parent].children[direction]
 
             # Goodrich Tamassia - unsuccessful search = splay last parent
+            # raise ValueError
             if curr == NULL:
                 self.splay(parent)
-                return NULL
+                raise ValueError(key + " is not in SplayTree".format(key))
             parent = curr

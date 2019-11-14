@@ -4,16 +4,15 @@ import queue
 import tempfile
 import time
 import os
-import pytest
 
 
-@pytest.mark.skip(reason="this test is very specific to a local webcam setup")
-def test_scriptorium_camera():
+def test_scriptorium_camera(webcam_id):
+    print("interactive exit/clean shutdown test - click x to close the cam window")
     mgr = multiprocessing.Manager()
     q = mgr.Queue()
 
     with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
-        cam_manager = sc.CameraManager((0, 10), q, workdir)
+        cam_manager = sc.CameraManager((webcam_id, 10), q, workdir)
         cam_manager.start()
 
         while cam_manager.is_alive():
@@ -23,17 +22,19 @@ def test_scriptorium_camera():
         cam_manager.join()
 
 
-@pytest.mark.skip(reason="this test is very specific to a local webcam setup")
-def test_scriptorium_camera_ocr_queue():
+def test_scriptorium_camera_ocr_queue(webcam_id):
+    print(
+        "interactive ocr test - point the camera at a piece of text, press any key to take a snapshot, and click x to close the cam window"
+    )
+
     mgr = multiprocessing.Manager()
     q = mgr.Queue()
 
-    # a strange test that requires a functioning camera to be pointing at a printed excerpt of 'Brève histoire du Québec' - https://www.cfqlmc.org/articles-cfqlmc/breve-histoire-du-quebec
-    some_examples = ["Anglo-Saxons", "partir", "conquéte"]
+    # a strange test that requires a functioning camera to be pointing at any kind of text
     count = 0
 
     with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
-        cam_manager = sc.CameraManager((5, 10), q, workdir)
+        cam_manager = sc.CameraManager((webcam_id, 10), q, workdir)
         cam_manager.start()
 
         while cam_manager.is_alive():
@@ -44,11 +45,10 @@ def test_scriptorium_camera_ocr_queue():
             if not tup:
                 break
             word, im_path = tup
-            if word in some_examples:
-                count += 1
+            count += 1
             assert os.path.isfile(im_path)
 
         cam_manager.shutdown()
         cam_manager.join()
 
-    assert count >= len(some_examples)
+    assert count > 0

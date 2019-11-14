@@ -1,3 +1,4 @@
+import scriptorium.splay as splay
 import scriptorium.camera as sc
 import scriptorium.dictionary as sd
 import cmd
@@ -7,39 +8,48 @@ import time
 import sys
 import cv2
 import signal
-from typing import Dict
+from typing import List, Tuple, Dict
 import multiprocessing
 
 TITLE = "Welcome to the Scriptorium"
 
 
 class Scriptorium(cmd.Cmd):
-    def __init__(self, webcam_id: int, webcam_fps: int, workdir: str):
+    def __init__(self, webcam_id: int, webcam_fps: int, workdir: str, binarize: bool):
         original_sigint_handler = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-        self.q = multiprocessing.JoinableQueue()
+        self.q: multiprocessing.JoinableQueue[
+            Tuple[str, str]
+        ] = multiprocessing.JoinableQueue()
         d: Dict[str, sd.WordData] = multiprocessing.Manager().dict()
 
-        self.camera_mgr = sc.CameraManager((webcam_id, webcam_fps), self.q, workdir)
+        self.camera_mgr = sc.CameraManager(
+            (webcam_id, webcam_fps), self.q, workdir, binarize
+        )
         self.dictionary_mgr = sd.DictionaryManager((self.q, d), workdir)
         self.dictionary_mgr.start()
         self.camera_mgr.start()
 
         signal.signal(signal.SIGINT, handler=original_sigint_handler)
 
+        self.splaytree = splay.SplayTree()
         super().__init__()
 
     def emptyline(self) -> bool:
         pass
 
-    def do_show(self, word: str) -> None:
-        "Show word info"
+    def do_look(self, word: str) -> None:
+        "Look up word"
         if not word:
             return
         try:
             worddata = self.dictionary_mgr.look(word)
             print(worddata)
+            try:
+                self.splaytree.search(word)
+            except ValueError:
+                self.splaytree.insert(word)
         except KeyError:
             print("Word is not in dictionary")
 
@@ -54,12 +64,43 @@ class Scriptorium(cmd.Cmd):
             args_split = args.split()
             word, definition = args_split[0], " ".join(args_split[1:])
             self.dictionary_mgr.define(word, definition)
+            try:
+                self.splaytree.search(word)
+            except ValueError:
+                self.splaytree.insert(word)
         except KeyError:
             print("Word is not in dictionary")
 
     def do_list(self, args: str) -> None:
         "Print all words detected from OCR"
         print(" ".join(self.dictionary_mgr.list()))
+
+    def do_recentk(self, args: str) -> None:
+        "Print (approximated) recent k looked/defined words"
+        try:
+            k = int(args[0])
+        except ValueError:
+            print("Provide a valid integer k, not {0}".format(k))
+        print(self.splaytree.recentk(k))
+        print(self.splay_lookups)
+        for k_ in self.splaytree.recentk(k):
+            worddata = self.dictionary_mgr.look(self.splay_lookups[k_])
+            print(worddata)
+
+    def do_add(self, args: str) -> None:
+        "Add word (not picked up by OCR)"
+        args_split = args.split()
+        word = args_split[0]
+        try:
+            self.dictionary_mgr.look(word)
+            print("Word is already in dictionary")
+            return
+        except KeyError:
+            self.q.put((word, ""))
+            self.q.join()
+            if len(args_split) > 1:
+                definition = " ".join(args_split[1:])
+                self.dictionary_mgr.define(word, definition)
 
     def do_EOF(self, args: str) -> bool:
         print("")
@@ -102,10 +143,15 @@ def main() -> int:
         type=str,
         help="specify path to load and store Scriptorium data",
     )
+    parser.add_argument(
+        "--binarize",
+        action="store_true",
+        help="apply kraken binarization before tesseract OCR",
+    )
 
     args = parser.parse_args()
 
-    s = Scriptorium(args.webcam_id, args.webcam_fps, args.workdir)
+    s = Scriptorium(args.webcam_id, args.webcam_fps, args.workdir, args.binarize)
     s.cmdloop_with_keyboard_interrupt(TITLE)
 
     return 0
