@@ -25,7 +25,7 @@ def is_greyscale(im):
     return True
 
 
-def test_scriptorium_ocr():
+def test_ocr():
     im = PIL.Image.open(os.path.join(TESTS_DIR, "histoire_du_quebec.jpg"))
 
     smart_ocr_bin = so.OCR(binarize=True)

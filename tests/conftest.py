@@ -1,6 +1,6 @@
 def pytest_addoption(parser):
     parser.addoption(
-        "--webcam-id", action="append", default=[], type=int, help="specify webcam id"
+        "--webcam-id", action="append", default=[], help="specify webcam id"
     )
 
 

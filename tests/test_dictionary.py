@@ -4,9 +4,23 @@ import queue
 import tempfile
 import time
 import os
+import itertools
+from pathlib import Path
+from resource import getpagesize
+
+PAGESIZE = getpagesize()
+STATM_PATH = Path("/proc/self/statm")
 
 
-def test_scriptorium_dictionary():
+def get_resident_set_size() -> int:
+    """Return the current resident set size in MB."""
+    # statm columns are: size resident shared text lib data dt
+    statm = STATM_PATH.read_text()
+    fields = statm.split()
+    return (int(fields[1]) * PAGESIZE) / 1000000.0
+
+
+def test_dictionary():
     mgr = multiprocessing.Manager()
     q = mgr.Queue()
     d = mgr.dict()
@@ -84,3 +98,92 @@ def test_scriptorium_dictionary():
 
         dict_manager2.shutdown()
         dict_manager2.join()
+
+
+def test_dictionary_memory_big():
+    _test_dictionary_memory()
+
+
+def test_dictionary_memory_typical():
+    _test_dictionary_memory(num_words=100000)
+
+
+def _test_dictionary_memory(num_words=-1):
+    mgr = multiprocessing.Manager()
+    q = mgr.Queue()
+    d = mgr.dict()
+
+    with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
+        start_memory = get_resident_set_size()
+
+        dict_manager = sd.DictionaryManager((q, d), workdir)
+        dict_manager.start()
+
+        word_count = 0
+        for word in itertools.permutations("abcdefghij"):
+            q.put(("".join(word), ""))
+            word_count += 1
+            if num_words > 0 and word_count >= num_words:
+                break
+        time.sleep(2)
+
+        print(
+            "{0}MB after storing {1} words".format(
+                get_resident_set_size() - start_memory, word_count
+            )
+        )
+
+        cd = dict_manager.get_completion_dawg()
+        print(
+            "{0}MB after getting completion dawg".format(
+                get_resident_set_size() - start_memory
+            )
+        )
+
+        dict_manager._persist_bytes_dawg()
+        print(
+            "{0}MB after persisting bytes dawg".format(
+                get_resident_set_size() - start_memory
+            )
+        )
+
+        bytes_dawg_path = os.path.join(
+            dict_manager.workdir, sd.DictionaryManager.persist_name
+        )
+
+        print(
+            "{0}MB bytes dawg size on disk".format(
+                os.path.getsize(bytes_dawg_path) / 1000000.0
+            )
+        )
+
+        dict_manager.shutdown()
+        dict_manager.join()
+
+        d.clear()
+
+        print(
+            "{0}MB after shutdown + clear old DictionaryManager".format(
+                get_resident_set_size() - start_memory
+            )
+        )
+
+        dict_manager2 = sd.DictionaryManager((q, d), workdir)
+        dict_manager2.start()
+
+        time.sleep(1)
+
+        print(
+            "{0}MB after load new DictionaryManager from previous bytes dawg".format(
+                get_resident_set_size() - start_memory
+            )
+        )
+
+        dict_manager2.shutdown()
+        dict_manager2.join()
+
+    print(
+        "{0}MB after the end of everything".format(
+            get_resident_set_size() - start_memory
+        )
+    )

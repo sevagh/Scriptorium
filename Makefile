@@ -5,7 +5,7 @@ dev_init:
 	python -m pip install -r requirements-dev.txt
 
 test:
-	py.test -s --webcam-id=$(WEBCAM_ID) $(TEST_FILE)
+	py.test -s --webcam-id=$(WEBCAM_ID) $(PYTEST_ARGS)
 
 lint:
 	pylint ./scriptorium --rcfile=./.pylintrc

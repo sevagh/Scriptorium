@@ -6,13 +6,13 @@ import time
 import os
 
 
-def test_scriptorium_camera(webcam_id):
+def test_camera(webcam_id):
     print("interactive exit/clean shutdown test - click x to close the cam window")
     mgr = multiprocessing.Manager()
     q = mgr.Queue()
 
     with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
-        cam_manager = sc.CameraManager((webcam_id, 10), q, workdir)
+        cam_manager = sc.CameraManager((int(webcam_id), 10), q, workdir)
         cam_manager.start()
 
         while cam_manager.is_alive():
@@ -22,7 +22,7 @@ def test_scriptorium_camera(webcam_id):
         cam_manager.join()
 
 
-def test_scriptorium_camera_ocr_queue(webcam_id):
+def test_camera_ocr_queue(webcam_id):
     print(
         "interactive ocr test - point the camera at a piece of text, press any key to take a snapshot, and click x to close the cam window"
     )
@@ -34,7 +34,7 @@ def test_scriptorium_camera_ocr_queue(webcam_id):
     count = 0
 
     with tempfile.TemporaryDirectory(prefix="scriptorium-tests-") as workdir:
-        cam_manager = sc.CameraManager((webcam_id, 10), q, workdir)
+        cam_manager = sc.CameraManager((int(webcam_id), 10), q, workdir)
         cam_manager.start()
 
         while cam_manager.is_alive():
